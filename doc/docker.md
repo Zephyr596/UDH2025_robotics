@@ -3,7 +3,7 @@
 ### Create an updated image (if Dockerfile have updates)
 
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### Allow docker xhost for gui interfaces
