@@ -68,3 +68,7 @@ RUN if [[ -z "${USE_NVIDIA}" ]] ;\
     then printf "export QT_GRAPHICSSYSTEM=native" >> /home/${UNAME}/.bashrc ;\
     else echo "Native rendering support disabled" ;\
     fi
+
+# fix OpenGL bug according to https://github.com/microsoft/WSL/issues/7507#issuecomment-1698412148
+ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib
+ENV LIBVA_DRIVER_NAME=d3d12
