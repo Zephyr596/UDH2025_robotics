@@ -52,6 +52,10 @@ ARG PX4_TAG="v1.15.2"
 WORKDIR $HOME
 RUN sudo git clone --depth 1 --branch $PX4_TAG --recurse-submodules https://github.com/PX4/PX4-Autopilot.git
 RUN git config --global --add safe.directory /home/sim/PX4-Autopilot
+# Apply patch according to https://github.com/PX4/PX4-Autopilot/pull/21617
+WORKDIR /home/sim/PX4-Autopilot
+ADD ./patch/fix.patch /tmp/fix.patch
+RUN git apply /tmp/fix.patch
 
 # ROS vars
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && \
