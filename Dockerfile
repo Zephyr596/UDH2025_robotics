@@ -55,7 +55,7 @@ RUN git config --global --add safe.directory /home/sim/PX4-Autopilot
 # Apply patch according to https://github.com/PX4/PX4-Autopilot/pull/21617
 WORKDIR /home/sim/PX4-Autopilot
 ADD ./patch/fix.patch /tmp/fix.patch
-RUN git apply /tmp/fix.patch
+RUN sudo git apply --whitespace=fix /tmp/fix.patch
 
 # ROS vars
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc && \
