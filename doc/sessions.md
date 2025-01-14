@@ -46,6 +46,7 @@ To terminate all instances, you can use:
 
 ```bash
 pkill -f px4
+pkill -f gz
 ```
 
 
