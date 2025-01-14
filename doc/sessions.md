@@ -16,6 +16,11 @@ Example for 3 drones:
 ./run_multiple.sh 3
 ```
 
+Open GUI manully by:
+```bash
+gz sim -g
+```
+
 Then, launch PX4 Mavros nodes. Set the number of drones using the 'n' argument:
 ``` bash
 roslaunch drones_sim px4_sim_recursed.launch n:=3
