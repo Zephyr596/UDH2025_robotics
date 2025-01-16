@@ -30,7 +30,7 @@ docker run -it --privileged --ipc=host --net=host --user root \
 -e DISPLAY=$DISPLAY -e MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA \
 --name=px4 udh2025_robotics-drone_sim:latest bash
 ```
-```
+
 
 #### To enter the docker use:
 ``` bash
