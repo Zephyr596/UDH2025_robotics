@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ensure using newest world
-cp /home/sim/world/wadibirk.sdf /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/wadibirk.sdf
+cp /home/sim/UDH2025_robotics/world/wadibirk.sdf /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/wadibirk.sdf
 
 cd
 cd PX4-Autopilot
