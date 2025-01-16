@@ -230,7 +230,7 @@
         </visual>
 
         <!-- Position of the box in the world -->
-        <pose>0 -592.5 10 0 0 0</pose> <!-- Place it slightly above ground -->
+        <pose>7.5 -592.5 10 0 0 0</pose> <!-- Place it slightly above ground -->
       </link>
     </model>
 
