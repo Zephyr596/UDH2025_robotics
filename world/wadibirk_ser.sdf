@@ -14,7 +14,7 @@
         <collision name="collision">
           <geometry>
             <heightmap>
-              <uri>/home/sim/UDH2025_robotics/world/dsm/heightmap.png</uri>
+              <uri>/home/sim/UDH2025_robotics/world/dsm/heightmap_ser.png</uri>
               <size>4967 5267 191</size>
               <pos>0 0 0</pos>
             </heightmap>
@@ -25,10 +25,10 @@
             <heightmap>
               <use_terrain_paging>true</use_terrain_paging>
               <texture>
-                <diffuse>/home/sim/UDH2025_robotics/world/geotiff_RGB/heightmap_texture_resized_2049.png</diffuse>
+                <diffuse>/home/sim/UDH2025_robotics/world/geotiff_RGB/heightmap_texture_resized_2049_ser.png</diffuse>
                 <size>4900 4901</size>
               </texture>
-              <uri>/home/sim/UDH2025_robotics/world/dsm/heightmap.png</uri>
+              <uri>/home/sim/UDH2025_robotics/world/dsm/heightmap_ser.png</uri>
               <size>4900 4901 191</size>
             </heightmap>
           </geometry>

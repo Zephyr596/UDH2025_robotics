@@ -1,5 +1,4 @@
 #!/bin/bash
-
 cd
 cd PX4-Autopilot
 
@@ -18,6 +17,11 @@ ROWS=$DEFAULT_ROWS       # Number of rows, default is 4
 
 # Calculate columns based on N and ROWS
 COLS=$(( (N + ROWS - 1) / ROWS ))  # Ceiling of N / ROWS
+
+# Launch a virtual 0 drone for initializing Gazebo
+echo "Launching virtual 0 drone to initialize Gazebo..."
+sudo tmux new-session -d -s "drone_0" "PX4_GZ_WORLD=wadibirk PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE=\"$CENTER_SWARM_POSE_X,$CENTER_SWARM_POSE_Y,$CENTER_SWARM_POSE_Z\" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 0"
+sleep 6  # Wait for Gazebo to initialize
 
 # Launch drones in a grid
 for n in $(seq 0 $((N-1))); do

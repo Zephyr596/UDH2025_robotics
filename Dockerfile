@@ -81,5 +81,6 @@ RUN if [[ -z "${USE_NVIDIA}" ]] ;\
 ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib
 ENV LIBVA_DRIVER_NAME=d3d12
 # Add terminal commands
-RUN echo "alias run='/home/sim/UDH2025_robotics/run_multiple.sh 1'" >> ~/.bashrc
+RUN echo "alias run='/home/sim/UDH2025_robotics/run_multiple.sh 1'" >> ~/.bashrc && \
+    echo "alias make_px4='cd /home/sim/PX4-Autopilot && make px4_sitl gz_x500 && cd -'" >> ~/.bashrc
 
