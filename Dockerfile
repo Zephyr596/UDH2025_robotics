@@ -56,7 +56,8 @@ ARG PX4_TAG="v1.15.2"
 RUN sudo git clone --depth 1 --branch $PX4_TAG --recurse-submodules https://github.com/PX4/PX4-Autopilot.git
 RUN git config --global --add safe.directory /home/sim/PX4-Autopilot
 # Add wadibirk world file
-ADD ./catkin_ws/src/drones_sim/world/wadibirk.sdf /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/wadibirk.sdf
+ADD ./world/wadibirk.sdf /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/wadibirk.sdf
+ADD /catkin_ws/src/sitl_targets_gazebo-classic.cmake /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/sitl_targets_gazebo-classic.cmake
 RUN sudo sed -i '/set(gz_worlds/,/)/ s/)/ wadibirk)/' /home/sim/PX4-Autopilot/src/modules/simulation/gz_bridge/CMakeLists.txt
 # export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/simulation/gz/models:~/PX4-Autopilot/Tools/simulation/gz/worlds
 # Apply patch according to https://github.com/PX4/PX4-Autopilot/pull/21617
@@ -80,6 +81,5 @@ RUN if [[ -z "${USE_NVIDIA}" ]] ;\
 ENV LD_LIBRARY_PATH=/usr/lib/wsl/lib
 ENV LIBVA_DRIVER_NAME=d3d12
 # Add terminal commands
-RUN echo "alias copy_files='sudo cp /home/sim/UDH2025_robotics/world/wadibirk.sdf /home/sim/UDH2025_robotics/catkin_ws/src/sitl_targets_gazebo-classic.cmake /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds'" >> ~/.bashrc && \
-    echo "alias run='/home/sim/UDH2025_robotics/run_multiple.sh 1'" >> ~/.bashrc
+RUN echo "alias run='/home/sim/UDH2025_robotics/run_multiple.sh 1'" >> ~/.bashrc
 
