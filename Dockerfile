@@ -27,6 +27,8 @@ RUN sudo apt-get update \
     gstreamer1.0-gl \
     iputils-ping \
     nano \
+    vim \
+    sed \
     wget \
     gz-garden \
     && rm -rf /var/lib/apt/lists/*
@@ -52,6 +54,10 @@ ARG PX4_TAG="v1.15.2"
 WORKDIR $HOME
 RUN sudo git clone --depth 1 --branch $PX4_TAG --recurse-submodules https://github.com/PX4/PX4-Autopilot.git
 RUN git config --global --add safe.directory /home/sim/PX4-Autopilot
+# Add wadibirk world file
+ADD ./catkin_ws/src/drones_sim/world/wadibirk.sdf /home/sim/PX4-Autopilot/Tools/simulation/gz/worlds/wadibirk.sdf
+RUN sudo sed -i '/set(gz_worlds/,/)/ s/)/ wadibirk)/' /home/sim/PX4-Autopilot/src/modules/simulation/gz_bridge/CMakeLists.txt
+# export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/simulation/gz/models:~/PX4-Autopilot/Tools/simulation/gz/worlds
 # Apply patch according to https://github.com/PX4/PX4-Autopilot/pull/21617
 # WORKDIR /home/sim/PX4-Autopilot
 # ADD ./patch/fix.patch /tmp/fix.patch
