@@ -17,11 +17,6 @@ cd UDH2025_robotics
 ./run_multiple.sh 3
 ```
 
-Open GUI manully by:
-```bash
-gz sim -g
-```
-
 Then, launch PX4 Mavros nodes. Set the number of drones using the 'n' argument:
 ``` bash
 roslaunch drones_sim px4_sim_recursed.launch n:=3
@@ -52,7 +47,6 @@ To terminate all instances, you can use:
 
 ```bash
 pkill -f px4
-pkill -f gz
 ```
 
 
