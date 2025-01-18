@@ -42,7 +42,7 @@ View Global Position
 #### To check a drone's global position, use:
 
 ```bash
-rostopic echo /uav4/mavros/global_position/global
+rostopic echo /uav1/mavros/global_position/global
 ```
 
 #### Check Topic Format
