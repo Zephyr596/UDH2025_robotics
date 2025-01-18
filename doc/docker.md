@@ -28,6 +28,7 @@ docker run -it --privileged --ipc=host --net=host --user root \
 -v ~/.Xauthority:/home/sim/.Xauthority \
 -v ./:/home/sim/UDH2025_robotics:rw \
 -e DISPLAY=$DISPLAY -e MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA \
+-p 14570:14570/udp \
 --name=px4 udh2025_robotics-drone_sim:latest bash
 ```
 
