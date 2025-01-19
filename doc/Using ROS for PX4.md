@@ -50,7 +50,7 @@ rostopic echo /uav1/mavros/global_position/global
 To determine the message format of the topic, use:
 
 ```bash
-rostopic type /uav4/mavros/global_position/global
+rostopic type /uav1/mavros/global_position/global
 ```
 
 Output:

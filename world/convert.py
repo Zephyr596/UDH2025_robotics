@@ -24,17 +24,23 @@ def reproject_raster(input_file, output_file, target_proj):
     dst_ds = None
     print(f"Reprojected {input_file} to {output_file} using target projection.")
 
-def crop_raster(input_file, output_file, xmin, ymin, xmax, ymax):
+def crop_raster_with_margin(input_file, output_file, xmin, ymin, xmax, ymax, margin):
     """
-    裁剪 GeoTIFF 文件
+    裁剪 GeoTIFF 文件，并在四周预留边缘
     """
+    # 计算预留边缘后的坐标
+    xmin_new = xmin - margin
+    ymin_new = ymin - margin
+    xmax_new = xmax + margin
+    ymax_new = ymax + margin
+
     gdal.Warp(
         output_file,
         input_file,
-        outputBounds=(xmin, ymin, xmax, ymax),
+        outputBounds=(xmin_new, ymin_new, xmax_new, ymax_new),
         cropToCutline=True
     )
-    print(f"Cropped {input_file} to {output_file} with bounds {xmin}, {ymin}, {xmax}, {ymax}.")
+    print(f"Cropped {input_file} to {output_file} with bounds {xmin_new}, {ymin_new}, {xmax_new}, {ymax_new}.")
 
 def get_raster_size(file_path):
     """
@@ -62,8 +68,12 @@ geotiff_cropped = "./Wadibirk_geotiff_reprojected_cropped.tif"
 
 # 获取 DSM 文件的投影
 dsm_ds = gdal.Open(dsm_file)
+gt = dsm_ds.GetGeoTransform()
+pixel_size = gt[1] 
 dsm_proj = dsm_ds.GetProjection()
 dsm_ds = None
+# 增加一个像素大小的边缘
+margin = 1
 
 # 1. 重投影 GeoTIFF 文件
 reproject_raster(geotiff_file, geotiff_reprojected, dsm_proj)
@@ -74,8 +84,8 @@ xmin, ymin = df["X"].min(), df["Y"].min()
 xmax, ymax = df["X"].max(), df["Y"].max()
 
 # 3. 根据坐标范围裁剪 DSM 和重投影后的 GeoTIFF 文件
-crop_raster(dsm_file, dsm_cropped, xmin, ymin, xmax, ymax)
-crop_raster(geotiff_reprojected, geotiff_cropped, xmin, ymin, xmax, ymax)
+crop_raster_with_margin(dsm_file, dsm_cropped, xmin, ymin, xmax, ymax, margin)
+crop_raster_with_margin(geotiff_reprojected, geotiff_cropped, xmin, ymin, xmax, ymax, margin)
 
 # 4. 输出裁剪后文件的尺寸
 for file_path, name in zip([dsm_cropped, geotiff_cropped], ["DSM", "Reprojected GeoTIFF"]):

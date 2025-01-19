@@ -26,4 +26,4 @@ geotiff_resized = "./Wadibirk_geotiff_reprojected_resized.tif"
 
 # 执行裁减
 resize_raster(dsm_cropped, dsm_resized, target_width, target_height)
-resize_raster(geotiff_cropped, geotiff_resized, target_width, target_height)
+# resize_raster(geotiff_cropped, geotiff_resized, target_width, target_height)
