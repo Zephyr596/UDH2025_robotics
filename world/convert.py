@@ -63,7 +63,7 @@ csv_file = os.path.join(input_data_dir, "preplan_geom_lim_10m.csv")
 geotiff_reprojected = "./Wadibirk_geotiff_reprojected.tif"
 
 # 裁剪文件路径
-dsm_cropped = "./Wadi_Birq_elevation_dsm_cropped.tif"
+dsm_cropped = "./Wadi_Birq_elevation_dsm_cropped_margin.tif"
 geotiff_cropped = "./Wadibirk_geotiff_reprojected_cropped.tif"
 
 # 获取 DSM 文件的投影
@@ -73,7 +73,7 @@ pixel_size = gt[1]
 dsm_proj = dsm_ds.GetProjection()
 dsm_ds = None
 # 增加一个像素大小的边缘
-margin = 1
+margin = 5
 
 # 1. 重投影 GeoTIFF 文件
 reproject_raster(geotiff_file, geotiff_reprojected, dsm_proj)
@@ -85,7 +85,7 @@ xmax, ymax = df["X"].max(), df["Y"].max()
 
 # 3. 根据坐标范围裁剪 DSM 和重投影后的 GeoTIFF 文件
 crop_raster_with_margin(dsm_file, dsm_cropped, xmin, ymin, xmax, ymax, margin)
-crop_raster_with_margin(geotiff_reprojected, geotiff_cropped, xmin, ymin, xmax, ymax, margin)
+# crop_raster_with_margin(geotiff_reprojected, geotiff_cropped, xmin, ymin, xmax, ymax, margin)
 
 # 4. 输出裁剪后文件的尺寸
 for file_path, name in zip([dsm_cropped, geotiff_cropped], ["DSM", "Reprojected GeoTIFF"]):

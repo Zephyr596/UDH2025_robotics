@@ -2,7 +2,7 @@ import os
 from osgeo import gdal
 
 # 文件路径
-dsm_cropped = "./Wadi_Birq_elevation_dsm_cropped.tif"
+dsm_cropped = "./Wadi_Birq_elevation_dsm_cropped_margin.tif"
 geotiff_cropped = "./Wadibirk_geotiff_reprojected_cropped.tif"
 
 # 目标裁减尺寸
@@ -21,7 +21,7 @@ def resize_raster(input_file, output_file, width, height):
     print(f"Resized {input_file} to {width}x{height} and saved as {output_file}")
 
 # 输出文件路径
-dsm_resized = "./Wadi_Birq_elevation_dsm_resized.tif"
+dsm_resized = "./Wadi_Birq_elevation_dsm_resized_margin.tif"
 geotiff_resized = "./Wadibirk_geotiff_reprojected_resized.tif"
 
 # 执行裁减

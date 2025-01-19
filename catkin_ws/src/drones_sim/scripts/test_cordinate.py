@@ -1,9 +1,8 @@
 import pandas as pd
-import random
 
 # 文件路径
 original_file = "/home/zephyr/wep/UDH2025_robotics/input_data/preplan_geom_lim_10m.csv"
-refined_file = "/home/zephyr/wep/UDH2025_robotics/filter/refined.csv"
+refined_file = "/home/zephyr/wep/UDH2025_robotics/input_data/filtered_geom_lim_10x10.csv"
 sdf_output_file = "/home/zephyr/wep/UDH2025_robotics/world/wadibirk_updated.sdf"
 
 # 加载原始和过滤数据
@@ -25,19 +24,36 @@ refined_data[['gazebo_x', 'gazebo_y']] = refined_data.apply(
     lambda row: transform_to_gazebo(row['X'], row['Y'], x_min, x_max, y_min, y_max), axis=1, result_type='expand'
 )
 
-# 随机抽样 1000 个点
-sampled_points = refined_data.sample(n=1000, random_state=42)  # 固定随机种子以便结果一致
+# 标识边缘点
+edge_points = refined_data[
+    (refined_data['X'] == x_min) | (refined_data['X'] == x_max) |
+    (refined_data['Y'] == y_min) | (refined_data['Y'] == y_max)
+]
 
-# 生成 .sdf 文件
+# 确保边缘点包含在采样中
+num_edge_points = len(edge_points)
+if num_edge_points > 1000:
+    # 如果边缘点超过1000个，随机选择1000个边缘点
+    sampled_points = edge_points.sample(n=1000, random_state=42)
+else:
+    # 保留所有边缘点，剩余数量从非边缘点中抽样
+    remaining_points = refined_data.drop(edge_points.index)
+    num_remaining_samples = 1000 - num_edge_points
+    sampled_points = pd.concat([
+        edge_points,
+        remaining_points.sample(n=num_remaining_samples, random_state=42)
+    ])
+
+# .sdf 文件模板
 sdf_template = """
 <model name="start_area_{id}">
   <static>true</static>
-  <pose>{x} {y} 25 0 0 0</pose>
+  <pose>{x} {y} 30 0 0 0</pose>
   <link name="start_area_link_{id}">
     <collision name="start_area_collision_{id}">
       <geometry>
         <box>
-          <size>2 2 10</size>
+          <size>2 2 20</size>
         </box>
       </geometry>
       <surface>
@@ -81,4 +97,4 @@ updated_sdf = original_sdf.replace("</world>", models + "\n</world>")
 with open(sdf_output_file, "w") as output_file:
     output_file.write(updated_sdf)
 
-print(f"Updated .sdf file with 1000 randomly sampled points has been saved to: {sdf_output_file}")
+print(f"Updated .sdf file with 1000 randomly sampled points (including edge points) has been saved to: {sdf_output_file}")
