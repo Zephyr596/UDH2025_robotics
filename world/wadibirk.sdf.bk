@@ -254,7 +254,6 @@
         <falloff>0</falloff>
       </spot>
     </light>
-
     <!-- Global spherical coordinates -->
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
