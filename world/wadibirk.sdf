@@ -260,7 +260,7 @@
       <world_frame_orientation>ENU</world_frame_orientation>
       <latitude_deg>23.284292</latitude_deg> <!-- Center Latitude -->
       <longitude_deg>46.667097</longitude_deg> <!-- Center Longitude -->
-      <elevation>603.857</elevation> <!-- Adjust if elevation offset is required -->
+      <elevation>0</elevation> <!-- Adjust if elevation offset is required -->
     </spherical_coordinates>
   </world>
 </sdf>

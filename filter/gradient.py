@@ -228,9 +228,10 @@ ax.imshow(img_for_plot, extent=(
 # Plot filtered points
 # ax.scatter(filtered_df['X'], filtered_df['Y'], c='red', s=0.5, marker='o', alpha=0.7)
 ser_filtered_file = "../input_data/filtered_geom_lim_10x10.csv"
+merged_points_file = "/home/zephyr/wep/UDH2025_robotics/preprocess/merged_points.csv"
 
 refined_file = "./refined.csv"
-df = pd.read_csv(ser_filtered_file)
+df = pd.read_csv(merged_points_file)
 
 ax.scatter(df['X'], df['Y'], c='red', s=0.5, marker='o', alpha=0.7)
 
@@ -238,5 +239,5 @@ plt.title("Filtered Points")
 plt.xlabel("Longitude")
 plt.ylabel("Latitude")
 plt.tight_layout()
-plt.savefig("filtered_points_ser.png", dpi=600)  # High-res output
+plt.savefig("filtered_points_merged.png", dpi=600)  # High-res output
 plt.close()
