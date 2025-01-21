@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 PX4无人机控制节点
@@ -7,9 +7,10 @@ PX4无人机控制节点
 
 import rospy
 from geometry_msgs.msg import PoseStamped
-from mavros_msgs.msg import State, HomePosition
-from mavros_msgs.srv import CommandBool, SetMode, CommandTOL, CommandHome
+from mavros_msgs.msg import State, Waypoint
+from mavros_msgs.srv import CommandBool, SetMode, CommandTOL, WaypointPush, WaypointClear, WaypointSetCurrent
 from tf.transformations import *
+from std_msgs.msg import String
 
 from sensor_msgs.msg import NavSatFix
 
@@ -19,10 +20,75 @@ from numpy.linalg import norm
 import time
 import os
 import json
+import pandas as pd
 
-from mavros_msgs.msg import Waypoint
-from mavros_msgs.srv import WaypointPush, WaypointClear, WaypointSetCurrent
 from geographic_msgs.msg import GeoPointStamped
+
+import threading
+import time
+
+CONDITION_RECORDED_TIME = 20 #sec
+SESMIC_SOURCE_PERIOD = 30 #sec
+FLGIHT_TIME_PER_BAT = 1200 #sec, 20 min
+
+class Battery:
+    def __init__(self):
+        self.time = FLGIHT_TIME_PER_BAT
+        self.armed = False
+        self.drone_id = None
+        self.is_active = True
+        self.charge_pub = rospy.Publisher('/charging_stations', String, queue_size=1)
+        rospy.Subscriber('/charging_result', String, self.charging_stations_callback)
+        self.start_thread()
+
+    def charging_stations_callback(self, msg):
+        """
+        Process the received message, extract the UAV number, and charging conditions.
+        """
+        try:
+            message_data = msg.data.split(',')
+            # print(message_data)
+            uav_number = message_data[0]
+            status = str(message_data[1])
+            if str(self.drone_id) in uav_number:
+                rospy.loginfo(f"Message for UAV {self.drone_id}: {msg.data}")
+                if status == 'OK':
+                    rospy.loginfo(f"Battery replaced for UAV {self.drone_id}!")
+                    self.recharge()
+                    print('battery:', self.time, 'sec')
+        except Exception as e:
+            rospy.logerr(f"Error processing message: {e}")
+
+
+    def charge(self):
+        rospy.loginfo("Ask to charge")
+        msg = str(self.drone_id) + ',' + str(self.armed)
+        self.charge_pub.publish(msg)
+        
+    def start_thread(self):
+        self.thread = threading.Thread(target=self.update_value)
+        self.thread.daemon = True
+        self.thread.start()
+    
+    def check(self, state, id):
+        self.armed = state.armed
+        self.drone_id = int(id)
+        return self.is_active
+
+    def recharge(self):
+        self.time = FLGIHT_TIME_PER_BAT
+        self.is_active = True
+
+    def update_value(self):
+        # rospy.loginfo(str(self.time))
+        while True:
+            if self.armed and self.is_active:
+                if self.time <= 0:
+                    rospy.logwarn("The battery is low. Landing Drone!")
+                    self.is_active = False
+                self.time -= 1
+                time.sleep(1)
+                # print(self.time)
 
 class Drone:
     def __init__(self):
@@ -30,13 +96,14 @@ class Drone:
         # 获取无人机名称参数
         self.uav_name = str(rospy.get_param(rospy.get_name() + '/drone'))
         rospy.loginfo("INIT-" + self.uav_name + "-DRONE")
-        
-        # 初始化状态变量
-        self.pose = None  # 当前位姿
-        self.yaw = 0      # 当前偏航角
-        self.sp = None    # 目标位置
-        self.hz = 10      # 控制频率
-        self.rate = rospy.Rate(self.hz)  # 控制循环频率
+    
+        self.battery = Battery()
+
+        self.pose = None
+        self.yaw = 0
+        self.sp = None
+        self.hz = 10
+        self.rate = rospy.Rate(self.hz)
 
         # MAVROS状态相关
         self.current_state = State()
@@ -68,31 +135,67 @@ class Drone:
         rospy.Subscriber('/uav' + self.uav_name + '/mavros/local_position/pose', PoseStamped, self.drone_pose_callback)
         rospy.Subscriber('/uav' + self.uav_name + '/mavros/global_position/global', NavSatFix, self.gps_callback)
 
-        # 任务文件路径
-        self.pathname_task_list = "/home/sim/UDH2025_robotics/catkin_ws/src/drones_sim/mission/"
+        self.pathname_task_list = "/home/sim/UDH2025_robotics/catkin_ws/src/drones_sim/mission/"        
         self.filename_task_list = 'task_list_ASAD' + self.uav_name + '.json'
 
         # 读取任务文件
         self.mission_path = self.read_mission_json()
 
-    def read_mission_json(self):
-        """从JSON文件读取任务路径
-        
-        返回:
-            mission_list (list[CTask, ...]): 包含任务路径的列表
-        """       
+        # Example for recording data
+        self.id_rec_point = 0
+        self.df = None
+        self.pathname_recording_list = "/home/sim/UDH2025_robotics/catkin_ws/src/drones_sim/mission/"
+        self.filename_recording_list = 'preplan_ASAD' + self.uav_name + '.csv'
+        self.read_recording_points()
+        self.point_recording_pub = rospy.Publisher('/recording_points', String, queue_size=1)
+        rospy.Subscriber('/recording_result', String, self.recording_result_callback)
+
+        self.is_recording = False
+
+    def recording_result_callback(self, msg):
+        """
+        Process the received message, extract the UAV number, and check conditions.
+        """
+        try:
+            message_data = eval(msg.data)
+            # Extract fields from the message
+            uav_number = message_data[-1]  # 'uav3' is the last element
+            status = message_data[4]       # status is the 5th element
+            # Check if the message is for the given UAV ID
+            if str(self.uav_name) in uav_number:
+                rospy.loginfo(f"Message for UAV {self.uav_name}: {msg.data}")
+                # Check if the status is 'done'
+                if status == 'done':
+                    rospy.loginfo(f"'done' status detected for UAV {self.uav_name}!")
+                    self.is_recording = False
+        except Exception as e:
+            rospy.logerr(f"Error processing message: {e}")
+
+
+    def start_recording(self):
+        if self.id_rec_point < len(self.df):
+            RECSTAT = self.df.at[self.id_rec_point, 'RECSTAT']
+            RECLINE = self.df.at[self.id_rec_point, 'RECLINE']
+            msg = str(RECSTAT) + ',' + str(RECLINE) + ',' + str(self.uav_name)
+            self.point_recording_pub.publish(msg)
+            self.id_rec_point += 1
+            self.is_recording = True
+
+    def read_recording_points(self):
+        self.df = pd.read_csv(self.pathname_recording_list + self.filename_recording_list)
+        print(self.df)
+
+    def read_mission_json(self):  
         print("file path and name:", self.pathname_task_list + self.filename_task_list)
-
         mission_paths = []
-
-        # 检查文件是否存在
+        " check is file exist "
         if os.path.isfile(self.pathname_task_list + self.filename_task_list):
             with open(self.pathname_task_list + self.filename_task_list) as json_file:
                 data = json.load(json_file)
 
             # 解析任务数据
             for task in data['task_list']:
-                if int(task['code']) == 10:  # 10表示航点任务
+                if  int(task['code']) == 10:
                     path_task = []
                     for pose in task['poses']:
                         path_task.append([float(pose['lat']), float(pose['lon']), float(pose['alt'])])
@@ -113,16 +216,21 @@ class Drone:
     def gps_callback(self, data):
         """GPS数据回调函数"""
         self.global_pose = data
-
-        # 设置原点位置（仅执行一次）
         if self.set_origin_once and self.global_pose != None:
             self.origin_position = data
             self.set_origin(self.origin_position)
             self.set_origin_once = False
-            
+    
     def state_callback(self, state):
-        """状态回调函数"""
+        def myhook():
+            print("shutdown time!")
+
         self.current_state = state
+        self.battery.check(state, self.uav_name)
+
+        if not self.battery.is_active:
+            self.set_mode_client(base_mode=0, custom_mode="AUTO.LAND")
+            rospy.on_shutdown(myhook)
 
     def drone_pose_callback(self, pose_msg):
         """位姿回调函数"""
@@ -199,20 +307,17 @@ class Drone:
         print("Takeoff...")
         self.sp = self.pose
         while self.pose[2] < height:
-            self.sp[2] += 0.07
+            self.sp[2] += 0.1
             self.publish_setpoint(self.sp)
             self.rate.sleep()
 
     def set_origin(self, pose):
-        """设置GPS原点"""
-        # 等待发布器初始化
+        # Wait for the publisher to initialize
         rospy.sleep(1)
-
         origin = GeoPointStamped()
         origin.position.latitude = pose.latitude
         origin.position.longitude = pose.longitude
         origin.position.altitude = pose.altitude
-
         rospy.loginfo("Setting custom gp origin position...")
         self.set_gp_origin_pub.publish(origin)
 
@@ -273,55 +378,75 @@ class Drone:
         else:
             rospy.logwarn(f"Failed to set {mode} mode!")
 
-    def test(self):
-        """测试函数"""
+
+    def gps_flgiht(self, mission):
+        # Start drone
         self.arm()
         self.takeoff(height=5.0)
-        self.send_gps_path()
 
-    def send_gps_path(self):
-        """发送GPS航点路径"""
-        try:
-            # 清除现有航点
-            self.clear_waypoints()
-            waypoints = []
-            is_first = True
+        # Clear existing waypoints
+        self.clear_waypoints()
+        waypoints = []
 
-            # 添加任务航点
-            for cord in self.mission_path[0]:
-                wp = Waypoint()
-                wp.frame = 3  # 全局坐标系
-                wp.command = 16  # NAV_WAYPOINT命令
-                wp.is_current = is_first  # 设置为第一个航点
-                is_first = False
-                wp.autocontinue = True
-                wp.x_lat = cord[0]
-                wp.y_long = cord[1]
-                wp.z_alt = cord[2]
-                last_cord = cord
-                waypoints.append(wp)
+        is_first = True
 
-            # 添加降落航点
+        for cord in mission:
             wp = Waypoint()
-            wp.frame = 3  # 全局坐标系
-            wp.command = 21  # NAV_LAND命令
-            wp.is_current = False
+            wp.frame = 3  # Global coordinate frame
+            wp.command = 16  # NAV_WAYPOINT command
+            wp.is_current = is_first  # Set as the first waypoint
+            is_first = False
             wp.autocontinue = True
-            wp.x_lat = last_cord[0]
-            wp.y_long = last_cord[1]
-            wp.z_alt = 0  # 高度（降落时忽略）
+            wp.x_lat = cord[0]
+            wp.y_long = cord[1]
+            wp.z_alt = cord[2]
+            last_cord = cord
             waypoints.append(wp)
 
-            # 推送航点到PX4
-            response = self.push_waypoints(start_index=0, waypoints=waypoints)
+        # Last Waypoint (LAND command)
+        wp = Waypoint()
+        wp.frame = 3  # Global coordinate frame
+        wp.command = 21  # NAV_LAND command
+        wp.is_current = False
+        wp.autocontinue = True
+        wp.x_lat = last_cord[0]
+        wp.y_long = last_cord[1]
+        wp.z_alt = 0  # Altitude ignored for LAND
+        waypoints.append(wp)
 
-            if response.success:
-                rospy.loginfo("Waypoints sent successfully!")
-                rospy.sleep(1)
-                self.set_mode("AUTO.MISSION")
-            else:
-                rospy.logerr("Failed to send waypoints.")
+        # Push waypoints to PX4 and start AUTO mode
+        response = self.push_waypoints(start_index=0, waypoints=waypoints)
+        if response.success:
+            rospy.loginfo("Waypoints sent successfully!")
+            rospy.sleep(1)
+            self.set_mode("AUTO.MISSION")
+        else:
+            rospy.logerr("Failed to send waypoints.")
 
+        # Wait for finish flight and land
+        rospy.loginfo("Wait for finish flight and land")
+        while self.current_state.armed:
+            self.rate.sleep()
+
+        rospy.loginfo("Landed!")
+
+    def data_recording(self):
+        # Start data recording
+        rospy.loginfo("Recording START")
+        self.start_recording()
+        while self.is_recording:
+            # rospy.sleep(CONDITION_RECORDED_TIME + 2) # just wait some time or /
+            # self.is_recording = False
+            self.rate.sleep() # / or wait for topic callback
+        rospy.loginfo("Recording END")
+
+    def demo_mission(self):
+        try:
+            for mission in self.mission_path:
+                self.gps_flgiht(mission)
+                self.data_recording()
+            self.battery.charge()
+                
         except rospy.ServiceException as e:
             rospy.logerr("Service call failed: %s", e)
 
@@ -329,7 +454,7 @@ if __name__ == "__main__":
     rospy.init_node('drone_control', anonymous=True)
     try:
         control = Drone() 
-        control.test()
+        control.demo_mission()
 
         while not rospy.is_shutdown():
             rospy.spin()  # 保持节点运行并处理回调
